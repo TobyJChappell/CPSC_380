@@ -1,0 +1,35 @@
+execve("./filecat", ["./filecat", "input.txt", "output.txt"], [/* 49 vars */]) = 0
+brk(NULL)                               = 0x12e2000
+mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f24847e9000
+access("/etc/ld.so.preload", R_OK)      = -1 ENOENT (No such file or directory)
+open("/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=84169, ...}) = 0
+mmap(NULL, 84169, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7f24847d4000
+close(3)                                = 0
+open("/lib64/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\3\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\20&\2\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0755, st_size=2156160, ...}) = 0
+mmap(NULL, 3985888, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7f24841fb000
+mprotect(0x7f24843be000, 2097152, PROT_NONE) = 0
+mmap(0x7f24845be000, 24576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1c3000) = 0x7f24845be000
+mmap(0x7f24845c4000, 16864, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7f24845c4000
+close(3)                                = 0
+mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f24847d3000
+mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f24847d1000
+arch_prctl(ARCH_SET_FS, 0x7f24847d1740) = 0
+mprotect(0x7f24845be000, 16384, PROT_READ) = 0
+mprotect(0x600000, 4096, PROT_READ)     = 0
+mprotect(0x7f24847ea000, 4096, PROT_READ) = 0
+munmap(0x7f24847d4000, 84169)           = 0
+open("input.txt", O_RDONLY)             = 3
+open("output.txt", O_WRONLY|O_CREAT|O_APPEND, 03777674510612630) = 4
+read(3, "Bar\n", 8)                     = 4
+write(4, "Bar\n", 4)                    = 4
+read(3, "", 8)                          = 0
+fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 0), ...}) = 0
+mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f24847e8000
+write(1, "Concatenated file contents to ou"..., 42) = 42
+close(3)                                = 0
+close(4)                                = 0
+exit_group(0)                           = ?
++++ exited with 0 +++
