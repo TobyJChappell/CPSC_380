@@ -7,7 +7,7 @@
 
 Estimates the value of pi using pthreads. This is calculated using the equation: pi = 4 * hit_count/total_pts, where hit_count is the number of points inside the circle and total_pts is the total number of points.
 
-Compile: gcc mcarlo.c -o mcarlo -plthread -ml
+Compile: gcc mcarlo.c -o mcarlo -pthread -ml
 
 References: https://stackoverflow.com/questions/9748393/how-can-i-get-argv-as-int/38669018
 */
