@@ -14,7 +14,7 @@ References: https://www.geeksforgeeks.org/input-output-system-calls-c-create-ope
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include<fcntl.h>
+#include <fcntl.h>
 
 int main(int argc, char *argv[])
 {
