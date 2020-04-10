@@ -102,45 +102,16 @@ int main(int argc, char *argv[])
 		}
 		fclose(task_set);
 
-		//print tasks
-		for(i = 0; i < numTasks; i++)
-		{
-			printf("Task Name: %s, WCET: %d, Period: %d\n",tasks[i].name, tasks[i].wcet,tasks[i].period);
-		}
-
 		//calculate hyperperiod and multiple to nperiods
 		int h_period = tasks[0].period;
     for (i = 1; i < numTasks; i++)
 		{
 			h_period = (((tasks[i].period*h_period))/(gcd(tasks[i].period, h_period)));
 		}
-		nperiods *= h_period;
 
-		void *thread_result;
-
-		//intialize semaphores
-		for(i = 0; i < numTasks; i++)
-		{
-			if((sem_init(&tasks[i].sem,0,i) != 0))
-			{
-				printf("Failed to initialize semaphore\n");
-				return -1;
-			}
-		}
-
-		//create threads
-		for(i = 0; i < numTasks; i++)
-		{
-			if(pthread_create(&tasks[i].thread, NULL, task, (void*)&tasks[i]) != 0)
-			{
-	        printf("Thread creation failed\n");
-	        return -1;
-	    }
-		}
-
-		//schedule tasks
+		//check if task set is able to be scheduled
 		int priority, index, j;
-		for(i = 0; i < nperiods; i++)
+		for(i = 0; i < h_period; i++)
 		{
 			//update remaining_time and check if any missed deadlines
 			for(j = 0; j < numTasks; j++)
@@ -154,12 +125,12 @@ int main(int argc, char *argv[])
 					else
 					{
 						printf("Missed deadline for task %s on clock tick %d\n", tasks[j].name,i);
+						printf("Task set not possible to schedule\n");
 						return 0;
 					}
 				}
 			}
 
-			//determine which task gets to run
 			priority = -1;
 			index = -1;
 			for(j = 0; j < numTasks; j++)
@@ -171,25 +142,97 @@ int main(int argc, char *argv[])
 				}
 			}
 
-			//release task semaphore
-			if(index == -1)
+			//decrement remaining_time
+			if(index != -1)
 			{
-				printf("Idle\n");
+				tasks[index].remaining_time--;
 			}
 			else
 			{
-				//allow task to run
-				if(sem_post(&tasks[index].sem) != 0)
-				{
-						printf("Failed to unlock semaphore\n");
-						return -1;
-				}
-				printf("Task Name: %s is running\n", tasks[index].name);
-				tasks[index].remaining_time = tasks[index].remaining_time-1;
 			}
 		}
 
+		FILE *schedule = fopen(argv[3], "w");
+		//write clock ticks to scheduler
+		for(i = 0; i < h_period; i++)
+		{
+			fprintf(schedule, "%d ", i);
+		}
+		fputc('\n', schedule);
+
+		//intialize semaphores
+		for(i = 0; i < numTasks; i++)
+		{
+			if((sem_init(&tasks[i].sem,0,i) != 0))
+			{
+				printf("Failed to initialize semaphore\n");
+				return -1;
+			}
+		}
+
+		//create threads
+		void *thread_result;
+		for(i = 0; i < numTasks; i++)
+		{
+			if(pthread_create(&tasks[i].thread, NULL, task, (void*)&tasks[i]) != 0)
+			{
+	        printf("Thread creation failed\n");
+	        return -1;
+	    }
+		}
+
+		//schedule tasks
+		int k;
+		for(i = 0; i < nperiods; i++)
+		{
+			for(j = 0; j < h_period; j++)
+			{
+				//update remaining_time
+				for(k = 0; k < numTasks; k++)
+				{
+					if(i%tasks[k].period == 0)
+					{
+						if(tasks[k].remaining_time == 0)
+						{
+							tasks[k].remaining_time = tasks[k].wcet;
+						}
+					}
+				}
+
+				//determine which task gets to run
+				priority = -1;
+				index = -1;
+				for(k = 0; k < numTasks; k++)
+				{
+					if(tasks[k].remaining_time != 0 && 1/tasks[k].period > priority)
+					{
+						priority = tasks[k].period;
+						index = k;
+					}
+				}
+
+				//release task semaphore
+				if(index == -1)
+				{
+					printf("Idle\n");
+					fputs("I ", schedule);
+				}
+				else
+				{
+					//allow task to run
+					if(sem_post(&tasks[index].sem) != 0)
+					{
+							printf("Failed to unlock semaphore\n");
+							return -1;
+					}
+					fprintf(schedule, "%s ", tasks[index].name);
+				}
+			}
+			fputc('\n', schedule);
+		}
 		printf("Scheduling successful!\n");
+
+		fclose(schedule);
 
 		//join threads
 		for(i = 0; i < numTasks; i++)
@@ -218,7 +261,6 @@ Prints name of task running
 */
 void *task(void *arg)
 {
-	/**
 	while(1)
 	{
 		if(sem_wait(&((struct Task*)arg)->sem) != 0)
@@ -230,7 +272,6 @@ void *task(void *arg)
 		((struct Task*)arg)->remaining_time--;
 		fflush(stdout);
 	}
-	*/
 	pthread_exit(0);
 }
 
