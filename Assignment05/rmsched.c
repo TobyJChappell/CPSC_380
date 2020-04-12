@@ -5,11 +5,9 @@
 @course CPSC-380
 @assignment 5
 
-
-
 Compile: gcc rmsched.c -o rmsched -pthread
 
-Run: ./rmsched
+Run: ./rmsched <nperiods> <task set> <schedule>
 
 References:
 http://www.cse.cuhk.edu.hk/~ericlo/teaching/os/lab/9-PThread/Pass.html
@@ -34,9 +32,10 @@ https://www.geeksforgeeks.org/structures-c/
 void *task(void *arg);
 int gcd(int a, int b);
 
-void *ptr;
 int numTasks;
 int nperiods;
+sem_t control;
+sem_t *sems;
 
 struct Task
 {
@@ -44,7 +43,7 @@ struct Task
 	int wcet;
 	int period;
 	int remaining_time;
-	sem_t sem;
+	int id;
 	pthread_t thread;
 };
 
@@ -77,29 +76,32 @@ int main(int argc, char *argv[])
     char c;
     while ((c=fgetc(task_set))!=EOF)
     {
-
-        if (c == '\n')
-        {
-            num_lines++;
-        }
+			if (c == '\n')
+			{
+				num_lines++;
+			}
     }
     fclose(task_set);
 
 		numTasks = num_lines;
+
 		struct Task tasks[numTasks];
+		sems = (sem_t *)malloc(numTasks*sizeof(sem_t));
 
 		//retrieve contents of task set and store in tasks
 		task_set = fopen(argv[2],"r");
 		int i;
     for(i = 0; i < numTasks; i++)
 		{
-			if(fscanf(task_set, "%s %d %d", tasks[i].name, &tasks[i].wcet, &tasks[i].period) != 3 )
+			if(fscanf(task_set, "%s %d %d", tasks[i].name, &tasks[i].wcet, &tasks[i].period) != 3)
 			{
-				printf("Task set format error at line %d.",i);
+				printf("Task set format error on line %d\n",i+1);
         return -1;
 			}
 			tasks[i].remaining_time = 0;
+			tasks[i].id = i;
 		}
+
 		fclose(task_set);
 
 		//calculate hyperperiod and multiple to nperiods
@@ -147,9 +149,6 @@ int main(int argc, char *argv[])
 			{
 				tasks[index].remaining_time--;
 			}
-			else
-			{
-			}
 		}
 
 		FILE *schedule = fopen(argv[3], "w");
@@ -163,15 +162,20 @@ int main(int argc, char *argv[])
 		//intialize semaphores
 		for(i = 0; i < numTasks; i++)
 		{
-			if((sem_init(&tasks[i].sem,0,i) != 0))
+			if(sem_init(&sems[i],0,0) != 0)
 			{
 				printf("Failed to initialize semaphore\n");
 				return -1;
 			}
 		}
 
+		if(sem_init(&control,0,0) != 0)
+		{
+			printf("Failed to initialize semaphore\n");
+			return -1;
+		}
+
 		//create threads
-		void *thread_result;
 		for(i = 0; i < numTasks; i++)
 		{
 			if(pthread_create(&tasks[i].thread, NULL, task, (void*)&tasks[i]) != 0)
@@ -190,7 +194,7 @@ int main(int argc, char *argv[])
 				//update remaining_time
 				for(k = 0; k < numTasks; k++)
 				{
-					if(i%tasks[k].period == 0)
+					if(j%tasks[k].period == 0)
 					{
 						if(tasks[k].remaining_time == 0)
 						{
@@ -220,11 +224,17 @@ int main(int argc, char *argv[])
 				else
 				{
 					//allow task to run
-					if(sem_post(&tasks[index].sem) != 0)
+					if(sem_post(&sems[index]) != 0)
 					{
 							printf("Failed to unlock semaphore\n");
 							return -1;
 					}
+					if(sem_wait(&control) != 0)
+					{
+						printf("Failed to lock semaphore\n");
+						return -1;
+					}
+					tasks[index].remaining_time--;
 					fprintf(schedule, "%s ", tasks[index].name);
 				}
 			}
@@ -234,25 +244,22 @@ int main(int argc, char *argv[])
 
 		fclose(schedule);
 
-		//join threads
-		for(i = 0; i < numTasks; i++)
-		{
-			if(pthread_join(tasks[i].thread, &thread_result) != 0)
-			{
-	        printf("Thread join failed\n");
-	        return -1;
-	    }
-		}
-
 		//destroy semaphores
 		for(i = 0; i < numTasks; i++)
 		{
-			if((sem_destroy(&tasks[i].sem) != 0))
+			if(sem_destroy(&sems[i]) != 0)
 			{
 		    printf("Failed to destroy semaphore\n");
 				return -1;
 			}
 		}
+		if(sem_destroy(&control) != 0)
+		{
+			printf("Failed to destroy semaphore\n");
+			return -1;
+		}
+
+		free(sems);
     return 0;
 }
 
@@ -261,18 +268,23 @@ Prints name of task running
 */
 void *task(void *arg)
 {
+	int index = ((struct Task*)arg)->id;
+	char *name = ((struct Task*)arg)->name;
 	while(1)
 	{
-		if(sem_wait(&((struct Task*)arg)->sem) != 0)
+		if(sem_wait(&sems[index]) != 0)
 		{
 			printf("Failed to lock semaphore\n");
 			exit(EXIT_FAILURE);
 		}
-		printf("Task Name: %s is running\n", ((struct Task*)arg)->name);
-		((struct Task*)arg)->remaining_time--;
+		printf("Task Name: %s is running\n", name);
 		fflush(stdout);
+		if(sem_post(&control) != 0)
+		{
+			printf("Failed to unlock semaphore\n");
+			exit(EXIT_FAILURE);
+		}
 	}
-	pthread_exit(0);
 }
 
 /**
