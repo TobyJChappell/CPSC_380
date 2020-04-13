@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
 }
 
 /**
-Prints name of task running
+Prints the name of the task (thread) running
 */
 void *task(void *arg)
 {
@@ -284,7 +284,10 @@ void *task(void *arg)
 }
 
 /**
-Returns the gcd of two numbers
+Returns the gcd of two numbers (used to determine the hyperperiod)
+@param i Task period
+@param j Current hyperperiod
+@return int GCD of two numbers
 */
 int gcd(int i, int j)
 {
