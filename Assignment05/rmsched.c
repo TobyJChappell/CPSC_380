@@ -5,6 +5,8 @@
 @course CPSC-380
 @assignment 5
 
+The program simulates a Rate Monotonic real-scheduler. The scheduler creates n number of threads (based on the tasks defined in the task set file). Then it simulates the scheduling of those threads using posix based semaphores. Each thread waits in a while loop waiting to acquire the semaphore. Once acquired the thread prints out its task name then waits for the next semaphore post by the scheduler. The scheduler then releases a semaphore based upon the RM scheduling algorithm. A “clock tick” is simulated by each iteration of the main scheduling loop. All task are periodic and released at time 0.
+
 Compile: gcc rmsched.c -o rmsched -pthread
 
 Run: ./rmsched <nperiods> <task set> <schedule>
@@ -35,7 +37,6 @@ int gcd(int a, int b);
 int numTasks;
 int nperiods;
 sem_t control;
-sem_t *sems;
 
 struct Task
 {
@@ -43,7 +44,7 @@ struct Task
 	int wcet;
 	int period;
 	int remaining_time;
-	int id;
+	sem_t sem;
 	pthread_t thread;
 };
 
@@ -65,7 +66,7 @@ int main(int argc, char *argv[])
 
 		//check if task set exists
 		FILE *task_set = fopen(argv[2], "r");
-		if (task_set == NULL)
+		if(task_set == NULL)
     {
         printf("Task set does not exist.");
         return -1;
@@ -74,7 +75,7 @@ int main(int argc, char *argv[])
 		//get number of lines of task set
     int num_lines = 0;
     char c;
-    while ((c=fgetc(task_set))!=EOF)
+    while((c=fgetc(task_set))!=EOF)
     {
 			if (c == '\n')
 			{
@@ -86,7 +87,6 @@ int main(int argc, char *argv[])
 		numTasks = num_lines;
 
 		struct Task tasks[numTasks];
-		sems = (sem_t *)malloc(numTasks*sizeof(sem_t));
 
 		//retrieve contents of task set and store in tasks
 		task_set = fopen(argv[2],"r");
@@ -99,9 +99,7 @@ int main(int argc, char *argv[])
         return -1;
 			}
 			tasks[i].remaining_time = 0;
-			tasks[i].id = i;
 		}
-
 		fclose(task_set);
 
 		//calculate hyperperiod and multiple to nperiods
@@ -162,7 +160,7 @@ int main(int argc, char *argv[])
 		//intialize semaphores
 		for(i = 0; i < numTasks; i++)
 		{
-			if(sem_init(&sems[i],0,0) != 0)
+			if(sem_init(&tasks[i].sem,0,0) != 0)
 			{
 				printf("Failed to initialize semaphore\n");
 				return -1;
@@ -224,7 +222,7 @@ int main(int argc, char *argv[])
 				else
 				{
 					//allow task to run
-					if(sem_post(&sems[index]) != 0)
+					if(sem_post(&tasks[index].sem) != 0)
 					{
 							printf("Failed to unlock semaphore\n");
 							return -1;
@@ -247,7 +245,7 @@ int main(int argc, char *argv[])
 		//destroy semaphores
 		for(i = 0; i < numTasks; i++)
 		{
-			if(sem_destroy(&sems[i]) != 0)
+			if(sem_destroy(&tasks[i].sem) != 0)
 			{
 		    printf("Failed to destroy semaphore\n");
 				return -1;
@@ -259,7 +257,6 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 
-		free(sems);
     return 0;
 }
 
@@ -268,11 +265,10 @@ Prints name of task running
 */
 void *task(void *arg)
 {
-	int index = ((struct Task*)arg)->id;
 	char *name = ((struct Task*)arg)->name;
 	while(1)
 	{
-		if(sem_wait(&sems[index]) != 0)
+		if(sem_wait(&((struct Task*)arg)->sem) != 0)
 		{
 			printf("Failed to lock semaphore\n");
 			exit(EXIT_FAILURE);
