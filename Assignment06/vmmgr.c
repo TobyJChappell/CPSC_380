@@ -37,7 +37,6 @@ int main(int argc, char *argv[])
       printf("Backing store does not exist.");
       return -1;
   }
-	fclose(backing_store);
 
 	int i, j;
 	int tlb[16][2];
@@ -55,7 +54,7 @@ int main(int argc, char *argv[])
 		page_table[i] = -1;
 	}
 
-	char p_mem[256][256];
+	unsigned char p_mem[256][256];
 	for(i = 0; i < 256; i++)
 	{
 		for(j = 0; j < 256; j++)
@@ -70,7 +69,7 @@ int main(int argc, char *argv[])
 	int p_mem_frame = 0;
 	int page_hit = 0;
 	int fifo = 0;
-	char s_byte;
+	unsigned char s_byte;
 	while(fscanf(addresses, "%d", &v_address) == 1)
 	{
 		v_address = ((1 << 16) - 1) & v_address;
@@ -94,7 +93,6 @@ int main(int argc, char *argv[])
 			{
 				fseek(backing_store, page_num*256, SEEK_SET);
 				fread(p_mem[p_mem_frame], 1, 256, backing_store);
-				printf("Backing Store: %s\n", p_mem[p_mem_frame]);
 				tlb[fifo][0] = page_num;
 				tlb[fifo][1] = p_mem_frame;
 				page_table[page_num] = p_mem_frame;
@@ -110,7 +108,7 @@ int main(int argc, char *argv[])
 		}
 		p_address = frame_num << 8 | offset;
 		s_byte = p_mem[frame_num][offset];
-		printf("Virtual Address: %d, Physical Address: %d, Signed Byte Value: %c\n", v_address, p_address, s_byte);
+		printf("Virtual Address: %d, Physical Address: %d, Signed Byte Value: %u\n", v_address, p_address, s_byte);
 		num_refs++;
 	}
 	double fault_rate = (double)num_faults/num_refs;
