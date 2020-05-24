@@ -61,29 +61,27 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	length = 1;
-	char c;
-	while((c=fgetc(address_file))!=EOF)
-	{
-		if (c == '\n')
-		{
-			length++;
-		}
-	}
-	fclose(address_file);
-
-	addr = malloc(length*sizeof(int));
-
-	address_file = fopen(argv[2], "r");
-	int i = 0;
 	length = 0;
-	while(fscanf(address_file, "%d", &addr[i]) == 1)
+	int test;
+	while(fscanf(address_file, "%d", &test) == 1)
 	{
-		i++;
 		length++;
 	}
 	fclose(address_file);
 
+	if(length == 0)
+	{
+		printf("File is not formatted correctly\n");
+		return -1;
+	}
+	addr = malloc(length*sizeof(int));
+	address_file = fopen(argv[2], "r");
+	int i = 0;
+	while(fscanf(address_file, "%d", &addr[i]) == 1)
+	{
+		i++;
+	}
+	fclose(address_file);
 	printf("Total Head Movement for FCFS: %d\n", fcfs());
 	sort();
 	init_pos = pos();
@@ -188,7 +186,7 @@ int c_scan()
 		{
 			movt += abs(addr[i]-addr[i-1]);
 		}
-	}	
+	}
 	return movt;
 }
 

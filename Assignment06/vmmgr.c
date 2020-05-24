@@ -5,11 +5,15 @@
 @course CPSC-380
 @assignment 6
 
-
+The objective of this assignment is to translate logical addresses to physical addresses for a virtual address space of size 256 = 65,536 bytes. The program reads from a file containing logical addresses and, using a TLB (consists of 16 entries using FIFO for replacement) as well as a page table, will translate each logical address to it's corresponding physical address and output the value of the byte stored at the translated physical address. The goal behind this project is to simulate the steps involved in translating logical to physical addresses.
 
 Compile: gcc vmmgr.c -o vmmgr
 
-Run: ./vmmgr <addresses> <backing store>
+Run: ./vmmgr <virtual addresses> <backing store> <output>
+
+<virtual addresses> = file of some number of 32-bit virtual addresses
+<backing store> = a 65,536 byte backing store (use BACKING_STORE.bin)
+<output> = Output file that displays the virtual address, physical address, and signed byte value
 
 References:
 https://stackoverflow.com/questions/8011700/how-do-i-extract-specific-n-bits-of-a-32-bit-unsigned-integer-in-c
@@ -19,9 +23,9 @@ https://stackoverflow.com/questions/8011700/how-do-i-extract-specific-n-bits-of-
 
 int main(int argc, char *argv[])
 {
-	if(argc != 3)
+	if(argc != 4)
 	{
-		fprintf(stderr, "Usage: %s <addresses> <backing store>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <virtual addresses> <backing store> <output>\n", argv[0]);
 		return -1;
 	}
 	FILE *addresses = fopen(argv[1], "r");
@@ -37,6 +41,9 @@ int main(int argc, char *argv[])
       printf("Backing store does not exist.");
       return -1;
   }
+
+	FILE *output = fopen(argv[3], "w");
+	fprintf(output, "Virtual Address, Physical Address, Signed Byte Value\n");
 
 	int i, j;
 	int tlb[16][2];
@@ -65,7 +72,9 @@ int main(int argc, char *argv[])
 
 	int v_address, p_address;
 	int offset, page_num, frame_num;
-	int num_faults, num_hits, num_refs = 0;
+	int num_faults = 0;
+	int num_hits = 0;
+	int num_refs = 0;
 	int p_mem_frame = 0;
 	int page_hit = 0;
 	int fifo = 0;
@@ -109,6 +118,7 @@ int main(int argc, char *argv[])
 		p_address = frame_num << 8 | offset;
 		s_byte = p_mem[frame_num][offset];
 		printf("Virtual Address: %d, Physical Address: %d, Signed Byte Value: %u\n", v_address, p_address, s_byte);
+		fprintf(output, "%d, %d, %u\n", v_address, p_address, s_byte);
 		num_refs++;
 	}
 	double fault_rate = (double)num_faults/num_refs;
@@ -120,5 +130,6 @@ int main(int argc, char *argv[])
 	printf("TLB Hit Rate: %lf\n", hit_rate);
 	fclose(addresses);
 	fclose(backing_store);
+	fclose(output);
   return 0;
 }
